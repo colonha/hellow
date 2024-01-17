@@ -1,0 +1,39 @@
+# Default values for my-chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+namespace: hellow
+
+
+# builderImage: alpine:latest # The builder image to use for the init container in the pod
+# helloWorldImage: oepoep/hello-world-image:latest # The hello-world image to use for webapp container in the pod
+
+image:
+  builder:
+    repository: alpine
+    tag: latest
+  helloWorld:
+    repository: oepoep/hello-world-image
+    tag: latest
+replicaCount: 1 # Number of replicas for the pod container
+privileged: true # Define whether the container should be run as a privileged container or not
+builderContainerArguments: |
+  echo "$DOCKERFILE_CONTENT" > /build-context/Dockerfile
+  echo "$INDEX_HTML_CONTENT" > /build-context/index.html
+  apk add containerd-ctr
+  apk add img
+  cd build-context/
+  img build -o type=image,name=oepoep/hello-world-image .
+  img save oepoep/hello-world-image -o build-save.tar
+  ctr --debug -n=k8s.io images import build-save.tar
+configMapName: dockerfile-config
+
+
+
+
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

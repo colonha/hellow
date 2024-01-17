@@ -1,0 +1,46 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  initContainers:
+    - name: builder
+      image: "{{ .Values.image.builder.repository }}:{{ .Values.image.builder.tag }}"
+      env:
+        - name: DOCKERFILE_CONTENT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.configMapName }}
+              key: Dockerfile
+        - name: INDEX_HTML_CONTENT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.configMapName }}
+              key: index.html
+      command: ["sh", "-c"]
+      args:
+      - {{- toYaml .Values.builderContainerArguments  | nindent 12 }}
+      securityContext:
+        privileged: {{ .Values.privileged }}
+      volumeMounts:
+        - name: dockerfile-volume
+          mountPath: /build-context/
+        - name: docker-socket
+          mountPath: /run/containerd/containerd.sock
+  containers:
+    - name: hello-world
+      image: "{{ .Values.image.helloWorld.repository }}:{{ .Values.image.helloWorld.tag }}"
+      ports:
+        - containerPort: 80
+      imagePullPolicy: Never
+      volumeMounts:
+        - name: dockerfile-volume
+          mountPath: /build-context/
+  volumes:
+    - name: docker-socket
+      hostPath:
+        path: /run/containerd/containerd.sock
+    - name: dockerfile-volume
+      emptyDir: {}
